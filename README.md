@@ -24,8 +24,8 @@ These instructions will get you a copy of the project up and running on your loc
 1.  Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/keycloak-sso.git
-    cd keycloak-sso
+    git clone https://github.com/ADORSYS-GIS/keycloak-oid4vc-mock-fe.git
+    cd keycloak-oid4vc-mock-fe
     ```
 
 2.  Install the dependencies:
@@ -35,16 +35,10 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Configuration
 
-1.  Create a `.env` file in the root of the project by copying the `.env.example` file (if it exists) or by creating a new one.
-
-2.  Add the following environment variables to your `.env` file and replace the values with your Keycloak and OID4VC configuration:
-
-    ```env
-    VITE_KEYCLOAK_URL=https://your-keycloak-instance.com
-    VITE_KEYCLOAK_REALM=your-realm
-    VITE_KEYCLOAK_CLIENT_ID=your-client-id
-    VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID=your-credential-config-id
-    ```
+1. Using `.env.example` as a template, create a `.env` file in the root of the project and update the variables with the correct values:
+   ```bash
+   cp .env.example .env
+   ```
 
 ### Running the Application
 
