@@ -9,6 +9,7 @@ import keycloak from "../config/keycloak.config";
 import { AuthContext, type UserProfile } from "./AuthContext";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const appBaseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -16,9 +17,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(() => {
     keycloak.logout({
-      redirectUri: window.location.origin + "/",
+      redirectUri: appBaseUrl,
     });
-  }, []);
+  }, [appBaseUrl]);
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -74,11 +75,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(() => {
     console.log("Login called, redirecting to Keycloak...");
-    // Explicitly provide redirect URI
     keycloak.login({
-      redirectUri: window.location.origin + "/",
+      redirectUri: appBaseUrl,
     });
-  }, []);
+  }, [appBaseUrl]);
 
   const getToken = (): string | undefined => {
     return keycloak.token;
