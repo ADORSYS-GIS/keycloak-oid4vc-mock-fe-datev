@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [initKeycloak]);
 
   const login = useCallback(() => {
-    console.log("Login called, redirecting to Keycloak...");
+    console.log('Login called, redirecting to Keycloak...');
     keycloak.login({
       redirectUri: appBaseUrl,
     });
