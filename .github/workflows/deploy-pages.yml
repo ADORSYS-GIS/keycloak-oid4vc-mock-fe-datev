@@ -19,7 +19,7 @@ jobs:
       VITE_KEYCLOAK_URL: https://keycloak-demo.eudi-adorsys.com
       VITE_KEYCLOAK_REALM: oid4vc-vci
       VITE_KEYCLOAK_CLIENT_ID: oid4vc-demo-public
-      VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID: AdorsysCompanyCredential
+      VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID: DatevCompanyCredential
     runs-on: ubuntu-latest
 
     steps:
