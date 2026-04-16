@@ -20,9 +20,10 @@ const Dashboard = () => {
 
     try {
       // Retrieve credential offer links
+      // Each call creates a unique offer in Keycloak
       const [offerLink, offerLinkVal] = await Promise.all([
-        oid4vcService.getCredentialOfferDeeplink(),
-        oid4vcService.getCredentialOfferDeeplink(false),
+        oid4vcService.getCredentialOfferDeeplink(true), // By reference
+        oid4vcService.getCredentialOfferDeeplink(false), // By value
       ]);
 
       // Update state with retrieved data

@@ -18,7 +18,21 @@ export const CredentialConfigurationId = {
 export const DEFAULT_CREDENTIAL_CONFIGURATION_ID =
   import.meta.env.VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID || CredentialConfigurationId.KMA;
 
+const EndpointType = {
+  KEYCLOAK_26_6_0: 'keycloak_26_6_0',
+  PRE_KEYCLOAK_26_6_0: 'pre_keycloak_26_6_0',
+} as const;
+
+type EndpointType = (typeof EndpointType)[keyof typeof EndpointType];
+
+type QueryParams = Record<string, string | undefined>;
+
 class Oid4vcService {
+  private static readonly ENDPOINTS = {
+    CREATE_CREDENTIAL_OFFER: '/protocol/oid4vc/create-credential-offer',
+    CREDENTIAL_OFFER_URI: '/protocol/oid4vc/credential-offer-uri',
+  };
+
   private getBaseUrl(): string {
     const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL;
     const realm = import.meta.env.VITE_KEYCLOAK_REALM;
@@ -35,37 +49,120 @@ class Oid4vcService {
     };
   }
 
-  async getCredentialOfferUri(
-    credentialConfigurationId: string = DEFAULT_CREDENTIAL_CONFIGURATION_ID
-  ): Promise<string> {
+  private getUsername(): string {
+    return keycloak.tokenParsed?.preferred_username || '';
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  private buildQueryString(params: QueryParams): string {
+    return new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
+    ).toString();
+  }
+
+  private async withFallback<T>(
+    primary: () => Promise<T>,
+    fallback: () => Promise<T>,
+    context: string
+  ): Promise<T> {
     try {
-      const headers = await this.getAuthHeaders();
-      const url =
-        `${this.getBaseUrl()}/protocol/oid4vc/credential-offer-uri?` +
-        `credential_configuration_id=${encodeURIComponent(credentialConfigurationId)}` +
-        `&username=${encodeURIComponent(keycloak.tokenParsed?.preferred_username || '')}`;
+      return await primary();
+    } catch (primaryError) {
+      console.warn(`${context} primary failed, falling back`, primaryError);
 
-      const response = await fetch(url, { headers });
+      try {
+        return await fallback();
+      } catch (fallbackError) {
+        console.error(`${context} both strategies failed`, {
+          primaryError: this.getErrorMessage(primaryError),
+          fallbackError: this.getErrorMessage(fallbackError),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Failed to get credential offer URI: ${response.statusText}`);
+        throw new Error(
+          `${context} failed. Primary: ${this.getErrorMessage(primaryError)}, Fallback: ${this.getErrorMessage(fallbackError)}`
+        );
       }
-
-      const data: string | CredentialOfferUriResponse = await response.json();
-
-      if (typeof data === 'string') return data;
-      if (data?.credential_offer_uri) return data.credential_offer_uri;
-      if (data?.issuer && data?.nonce) return `${data.issuer}${data.nonce}`;
-
-      throw new Error('Unexpected credential-offer-uri response');
-    } catch (error) {
-      console.error('Error getting credential offer URI:', error);
-      throw error;
     }
   }
 
+  async getCredentialOfferUri(
+    credentialConfigurationId: string = DEFAULT_CREDENTIAL_CONFIGURATION_ID
+  ): Promise<string> {
+    return this.withFallback(
+      () => this.getCredentialOfferUriKeycloak26_6_0(credentialConfigurationId),
+      () => this.getCredentialOfferUriPreKeycloak26_6_0(credentialConfigurationId),
+      'CredentialOfferUri'
+    );
+  }
+
+  private async getCredentialOfferUriKeycloak26_6_0(
+    credentialConfigurationId: string
+  ): Promise<string> {
+    const queryParams: QueryParams = {
+      credential_configuration_id: credentialConfigurationId,
+      target_user: this.getUsername(),
+      pre_authorized: 'true',
+    };
+
+    return this.fetchCredentialOfferUri(
+      Oid4vcService.ENDPOINTS.CREATE_CREDENTIAL_OFFER,
+      queryParams,
+      EndpointType.KEYCLOAK_26_6_0
+    );
+  }
+
+  private async getCredentialOfferUriPreKeycloak26_6_0(
+    credentialConfigurationId: string
+  ): Promise<string> {
+    const queryParams: QueryParams = {
+      credential_configuration_id: credentialConfigurationId,
+      username: this.getUsername(),
+    };
+
+    return this.fetchCredentialOfferUri(
+      Oid4vcService.ENDPOINTS.CREDENTIAL_OFFER_URI,
+      queryParams,
+      EndpointType.PRE_KEYCLOAK_26_6_0
+    );
+  }
+
+  private async fetchCredentialOfferUri(
+    endpointPath: string,
+    queryParams: QueryParams,
+    endpointType: EndpointType
+  ): Promise<string> {
+    const headers = await this.getAuthHeaders();
+    const queryString = this.buildQueryString(queryParams);
+    const url = `${this.getBaseUrl()}${endpointPath}?${queryString}`;
+
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(`${endpointType} endpoint failed: ${response.statusText}`);
+    }
+
+    const data: string | CredentialOfferUriResponse = await response.json();
+
+    if (typeof data === 'string') return data;
+    if (data?.credential_offer_uri) return data.credential_offer_uri;
+
+    if (data?.issuer && data?.nonce) {
+      const base = data.issuer.replace(/\/$/, '');
+      return `${base}/${data.nonce}`;
+    }
+
+    throw new Error(`Unexpected response from ${endpointType} endpoint`);
+  }
+
   async fetchOffer(offerUrl: string): Promise<CredentialOffer> {
-    const response = await fetch(offerUrl);
+    const response = await fetch(offerUrl, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch offer: ${response.statusText}`);
@@ -87,12 +184,14 @@ class Oid4vcService {
 
       // JSON variant
       const normalized: CredentialOffer = { ...offer };
+
       if (!normalized.credential_issuer) {
         normalized.credential_issuer = this.getBaseUrl();
       }
 
       const payload = JSON.stringify(normalized);
       const encoded = encodeURIComponent(payload);
+
       return `openid-credential-offer://?credential_offer=${encoded}`;
     } catch (error) {
       console.error('Error building offer deeplink:', error);
@@ -116,21 +215,65 @@ class Oid4vcService {
   async getCredentialOfferPng(
     credentialConfigurationId: string = DEFAULT_CREDENTIAL_CONFIGURATION_ID
   ): Promise<Blob> {
-    await keycloak.updateToken(5);
+    return this.withFallback(
+      () => this.getCredentialOfferPngKeycloak26_6_0(credentialConfigurationId),
+      () => this.getCredentialOfferPngPreKeycloak26_6_0(credentialConfigurationId),
+      'CredentialOfferPng'
+    );
+  }
 
-    const headers = {
-      Accept: 'image/png',
-      Authorization: `Bearer ${keycloak.token}`,
+  private async getCredentialOfferPngKeycloak26_6_0(
+    credentialConfigurationId: string
+  ): Promise<Blob> {
+    const queryParams: QueryParams = {
+      credential_configuration_id: credentialConfigurationId,
+      target_user: this.getUsername(),
+      pre_authorized: 'true',
+      type: 'qr-code',
     };
 
-    const url =
-      `${this.getBaseUrl()}/protocol/oid4vc/credential-offer-uri?credential_configuration_id=${encodeURIComponent(credentialConfigurationId)}&type=qr-code` +
-      `&username=${encodeURIComponent(keycloak.tokenParsed?.preferred_username || '')}`;
+    return this.fetchCredentialOfferPng(
+      Oid4vcService.ENDPOINTS.CREATE_CREDENTIAL_OFFER,
+      queryParams,
+      EndpointType.KEYCLOAK_26_6_0
+    );
+  }
+
+  private async getCredentialOfferPngPreKeycloak26_6_0(
+    credentialConfigurationId: string
+  ): Promise<Blob> {
+    const queryParams: QueryParams = {
+      credential_configuration_id: credentialConfigurationId,
+      username: this.getUsername(),
+      type: 'qr-code',
+    };
+
+    return this.fetchCredentialOfferPng(
+      Oid4vcService.ENDPOINTS.CREDENTIAL_OFFER_URI,
+      queryParams,
+      EndpointType.PRE_KEYCLOAK_26_6_0
+    );
+  }
+
+  private async fetchCredentialOfferPng(
+    endpointPath: string,
+    queryParams: QueryParams,
+    endpointType: EndpointType
+  ): Promise<Blob> {
+    const baseHeaders = await this.getAuthHeaders();
+
+    const headers = {
+      ...baseHeaders,
+      Accept: 'image/png',
+    };
+
+    const queryString = this.buildQueryString(queryParams);
+    const url = `${this.getBaseUrl()}${endpointPath}?${queryString}`;
 
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      throw new Error(`Failed to get QR code: ${response.statusText}`);
+      throw new Error(`${endpointType} QR endpoint failed: ${response.statusText}`);
     }
 
     return response.blob();
@@ -141,8 +284,7 @@ class Oid4vcService {
   ): Promise<string> {
     try {
       const pngBlob = await this.getCredentialOfferPng(credentialConfigurationId);
-      const dataUrl = await this.blobToDataURL(pngBlob);
-      return dataUrl;
+      return this.blobToDataURL(pngBlob);
     } catch (error) {
       console.error('Failed to get QR code data URL:', error);
       throw error;
@@ -154,9 +296,13 @@ class Oid4vcService {
     credentialConfigurationId: string = DEFAULT_CREDENTIAL_CONFIGURATION_ID
   ): Promise<string> {
     const offerUrl = await this.getCredentialOfferUri(credentialConfigurationId);
+
+    if (byReference) {
+      return this.buildOfferDeeplink({}, offerUrl, 'uri');
+    }
+
     const offer = await this.fetchOffer(offerUrl);
-    const deeplink = this.buildOfferDeeplink(offer, offerUrl, byReference ? 'uri' : 'json');
-    return deeplink;
+    return this.buildOfferDeeplink(offer, offerUrl, 'json');
   }
 }
 
