@@ -12,11 +12,12 @@ interface CredentialOffer {
 }
 
 export const CredentialConfigurationId = {
-  KMA: 'KMACredential',
+  STEUERBERATER: 'SteuerberaterCredential',
 } as const;
 
 export const DEFAULT_CREDENTIAL_CONFIGURATION_ID =
-  import.meta.env.VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID || CredentialConfigurationId.KMA;
+  import.meta.env.VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID ||
+  CredentialConfigurationId.STEUERBERATER;
 
 const EndpointType = {
   KEYCLOAK_26_6_0: 'keycloak_26_6_0',
