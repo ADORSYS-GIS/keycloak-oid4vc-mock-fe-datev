@@ -12,12 +12,12 @@ interface CredentialOffer {
 }
 
 export const CredentialConfigurationId = {
-  STEUERBERATER: 'SteuerberaterCredential',
+  DATEV_COMPANY: 'DatevCompanyCredential',
 } as const;
 
 export const DEFAULT_CREDENTIAL_CONFIGURATION_ID =
   import.meta.env.VITE_OID4VC_DEFAULT_CREDENTIAL_CONFIGURATION_ID ||
-  CredentialConfigurationId.STEUERBERATER;
+  CredentialConfigurationId.DATEV_COMPANY;
 
 const EndpointType = {
   KEYCLOAK_26_6_0: 'keycloak_26_6_0',
