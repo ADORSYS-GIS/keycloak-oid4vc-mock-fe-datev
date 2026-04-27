@@ -9,8 +9,7 @@ const Dashboard = () => {
   const [offerDeeplinkVal, setOfferDeeplinkVal] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showUrls, setShowUrls] = useState(true);
-  const [showByValueUrl, setShowByValueUrl] = useState(true);
+  const [showByReferenceCard, setShowByReferenceCard] = useState(false);
 
   useEffect(() => {
     prepareQr();
@@ -141,25 +140,19 @@ const Dashboard = () => {
             }}
           >
             <Toggle
-              label="Show offer URLs"
-              checked={showUrls}
-              onChange={() => setShowUrls((current) => !current)}
-            />
-            <Toggle
-              label="Show by value URL"
-              checked={showByValueUrl}
-              onChange={() => setShowByValueUrl((current) => !current)}
+              label="Show by reference"
+              checked={showByReferenceCard}
+              onChange={() => setShowByReferenceCard((current) => !current)}
             />
           </div>
         )}
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 420px))',
-            justifyContent: 'center',
-            alignItems: 'stretch',
-            gap: '36px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '28px',
           }}
         >
           {/* Loading state */}
@@ -223,16 +216,17 @@ const Dashboard = () => {
             !error &&
             offerDeeplinkVal &&
             showCredentialOffer(offerDeeplinkVal, 'By value', {
-              showUrl: showUrls && showByValueUrl,
+              showUrl: true,
               qrSize: 360,
             })}
 
           {/* Credential offer loaded (by reference) */}
           {!isLoading &&
             !error &&
+            showByReferenceCard &&
             offerDeeplink &&
             showCredentialOffer(offerDeeplink, 'By reference', {
-              showUrl: showUrls,
+              showUrl: true,
               qrSize: 300,
             })}
 
@@ -403,7 +397,7 @@ function showCredentialOffer(offerLink: string, title: string, options: Credenti
               justifyContent: 'center',
             }}
           >
-            <p style={{ margin: 0, color: '#d7e4eb' }}>Toggle on</p>
+            <p style={{ margin: 0, color: '#d7e4eb' }}>URL hidden</p>
           </div>
         )}
       </div>
