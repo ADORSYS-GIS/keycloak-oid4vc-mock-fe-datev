@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build -- --base=/keycloak-oid4vc-mock-fe/
+        run: npm run build -- --base=/keycloak-oid4vc-mock-fe-datev/
 
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v3

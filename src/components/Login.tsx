@@ -40,7 +40,7 @@ const Login = () => {
           marginBottom: '24px',
         }}
       />
-      <h6 style={{ margin: '0 0 16px', fontSize: '2rem', color: '#fff' }}>Access denied.</h6>
+      <h6 style={{ margin: '0 0 16px', fontSize: '2rem', color: '#fff' }}>Access denied</h6>
       <button
         onClick={login}
         style={{
