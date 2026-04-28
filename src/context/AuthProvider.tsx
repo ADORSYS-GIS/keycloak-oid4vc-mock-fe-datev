@@ -3,11 +3,12 @@ import keycloak from '../config/keycloak.config';
 import { AuthContext, type UserProfile } from './AuthContext';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const appBaseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+  const appBaseUrl = new URL(import.meta.env.BASE_URL, window.location.origin).href;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const isKeycloakInitialized = useRef(false);
+  const refreshIntervalRef = useRef<number | null>(null);
 
   const logout = useCallback(() => {
     keycloak.logout({
@@ -30,12 +31,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('Initializing Keycloak...');
       const authenticated = await keycloak.init({
-        onLoad: 'check-sso',
         pkceMethod: 'S256',
         checkLoginIframe: false,
-        enableLogging: true,
-        // Explicitly set redirect URI to current URL
-        redirectUri: window.location.origin + window.location.pathname,
+        enableLogging: false,
+        redirectUri: appBaseUrl,
       });
 
       console.log('Authenticated via init:', authenticated);
@@ -44,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (authenticated) {
         await loadUserProfile();
 
-        setInterval(() => {
+        refreshIntervalRef.current = window.setInterval(() => {
           keycloak.updateToken(70).catch(() => {
             console.error('Failed to refresh token');
             logout();
@@ -57,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
       console.log('Keycloak initialization finished.');
     }
-  }, [loadUserProfile, logout]);
+  }, [appBaseUrl, loadUserProfile, logout]);
 
   useEffect(() => {
     if (isKeycloakInitialized.current) {
@@ -65,6 +64,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     isKeycloakInitialized.current = true;
     initKeycloak();
+
+    return () => {
+      if (refreshIntervalRef.current !== null) {
+        window.clearInterval(refreshIntervalRef.current);
+      }
+    };
   }, [initKeycloak]);
 
   const login = useCallback(() => {
