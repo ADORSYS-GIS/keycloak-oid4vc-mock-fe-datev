@@ -4,11 +4,12 @@ import oid4vcService from '../services/oid4vc.service';
 import QRCode from 'react-qr-code';
 
 const Dashboard = () => {
-  const { userProfile, logout } = useAuth();
+  const { logout } = useAuth();
   const [offerDeeplink, setOfferDeeplink] = useState<string | null>(null);
   const [offerDeeplinkVal, setOfferDeeplinkVal] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showByReferenceCard, setShowByReferenceCard] = useState(false);
 
   useEffect(() => {
     prepareQr();
@@ -43,41 +44,51 @@ const Dashboard = () => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 'calc(100vh - 160px)',
-        padding: '80px 40px',
-        backgroundColor: '#f8f9fa',
+        minHeight: '100vh',
+        padding: '32px 24px 56px',
+        backgroundColor: '#1F3D52',
         fontFamily: 'Arial, sans-serif',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Header with user info and logout */}
       <div
         style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
           display: 'flex',
+          width: '100%',
+          maxWidth: '1120px',
           alignItems: 'center',
-          gap: '20px',
+          justifyContent: 'space-between',
+          marginBottom: '40px',
+          gap: '24px',
+          flexWrap: 'wrap',
         }}
       >
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ margin: 0, fontWeight: 500, color: '#087ca8' }}>
-            {userProfile?.firstName} {userProfile?.lastName}
-          </p>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: '#6c757d' }}>{userProfile?.email}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <img
+            src={`${import.meta.env.BASE_URL}datev.png`}
+            alt="Datev logo"
+            style={{ width: '64px', height: '64px', objectFit: 'contain' }}
+          />
+          <div style={{ textAlign: 'left' }}>
+            <p style={{ margin: 0, color: '#d7e4eb', fontSize: '0.95rem', letterSpacing: 0.2 }}>
+              Credential Offer
+            </p>
+            <h2 style={{ margin: '4px 0 0', color: '#fff', fontSize: '1.8rem', fontWeight: 700 }}>
+              Wallet Access
+            </h2>
+          </div>
         </div>
         <button
           onClick={logout}
           style={{
-            backgroundColor: '#dc3545',
-            color: '#fff',
+            backgroundColor: '#AAE651',
+            color: '#000',
             border: 'none',
             padding: '10px 20px',
             borderRadius: '4px',
             cursor: 'pointer',
             fontSize: '0.95rem',
-            fontWeight: 500,
+            fontWeight: 700,
           }}
         >
           Logout
@@ -87,7 +98,7 @@ const Dashboard = () => {
       {/* Main content */}
       <div
         style={{
-          maxWidth: '600px',
+          maxWidth: '1120px',
           width: '100%',
           textAlign: 'center',
         }}
@@ -96,8 +107,8 @@ const Dashboard = () => {
           style={{
             fontSize: '2.5rem',
             marginBottom: '20px',
-            fontWeight: 400,
-            color: '#212529',
+            fontWeight: 700,
+            color: '#fff',
           }}
         >
           You are logged in
@@ -108,7 +119,7 @@ const Dashboard = () => {
             fontSize: '1.125rem',
             marginBottom: '20px',
             lineHeight: '1.6',
-            color: '#6c757d',
+            color: '#d7e4eb',
           }}
         >
           <p style={{ margin: 0 }}>Please scan the displayed QR code with your EUDI Wallet App.</p>
@@ -117,13 +128,31 @@ const Dashboard = () => {
           </p>
         </div>
 
+        {!isLoading && !error && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '24px',
+              flexWrap: 'wrap',
+              margin: '24px 0 32px',
+              color: '#fff',
+            }}
+          >
+            <Toggle
+              label="Show by reference"
+              checked={showByReferenceCard}
+              onChange={() => setShowByReferenceCard((current) => !current)}
+            />
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            minHeight: '480px',
-            gap: '30px',
+            alignItems: 'center',
+            gap: '28px',
           }}
         >
           {/* Loading state */}
@@ -140,13 +169,13 @@ const Dashboard = () => {
                 style={{
                   width: '60px',
                   height: '60px',
-                  border: '4px solid #e9ecef',
-                  borderTop: '4px solid #0865f0',
+                  border: '4px solid rgba(255, 255, 255, 0.2)',
+                  borderTop: '4px solid #AAE651',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
                 }}
               />
-              <p style={{ margin: 0, color: '#6c757d' }}>Renewing credential offer...</p>
+              <p style={{ margin: 0, color: '#d7e4eb' }}>Renewing credential offer...</p>
             </div>
           )}
 
@@ -159,6 +188,7 @@ const Dashboard = () => {
                 padding: '20px',
                 borderRadius: '8px',
                 border: '1px solid #f5c6cb',
+                gridColumn: '1 / -1',
               }}
             >
               <p style={{ margin: 0, fontWeight: 500 }}>{error}</p>
@@ -166,13 +196,14 @@ const Dashboard = () => {
                 onClick={prepareQr}
                 style={{
                   marginTop: '15px',
-                  backgroundColor: '#721c24',
-                  color: '#fff',
+                  backgroundColor: '#AAE651',
+                  color: '#000',
                   border: 'none',
                   padding: '10px 20px',
-                  borderRadius: '4px',
+                  borderRadius: '999px',
                   cursor: 'pointer',
                   fontSize: '0.95rem',
+                  fontWeight: 700,
                 }}
               >
                 Try Again
@@ -184,28 +215,35 @@ const Dashboard = () => {
           {!isLoading &&
             !error &&
             offerDeeplinkVal &&
-            showCredentialOffer(offerDeeplinkVal, 'By value')}
+            showCredentialOffer(offerDeeplinkVal, 'By value', {
+              showUrl: true,
+              qrSize: 360,
+            })}
 
           {/* Credential offer loaded (by reference) */}
           {!isLoading &&
             !error &&
+            showByReferenceCard &&
             offerDeeplink &&
-            showCredentialOffer(offerDeeplink, 'By reference')}
+            showCredentialOffer(offerDeeplink, 'By reference', {
+              showUrl: true,
+              qrSize: 300,
+            })}
 
           {/* Renew button */}
           {!isLoading && !error && (
-            <div style={{ marginTop: '20px' }}>
+            <div style={{ marginTop: '8px', gridColumn: '1 / -1' }}>
               <button
                 onClick={prepareQr}
                 style={{
-                  backgroundColor: '#0865f0',
-                  color: '#fff',
+                  backgroundColor: '#AAE651',
+                  color: '#000',
                   border: 'none',
                   padding: '12px 24px',
-                  borderRadius: '4px',
+                  borderRadius: '999px',
                   cursor: 'pointer',
                   fontSize: '1rem',
-                  fontWeight: 500,
+                  fontWeight: 700,
                 }}
               >
                 Renew credential offer
@@ -225,33 +263,143 @@ const Dashboard = () => {
   );
 };
 
-function showCredentialOffer(offerLink: string, title: string) {
+interface CredentialOfferOptions {
+  showUrl: boolean;
+  qrSize: number;
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '10px',
+        cursor: 'pointer',
+        fontWeight: 600,
+      }}
+    >
+      <span>{label}</span>
+      <button
+        type="button"
+        aria-pressed={checked}
+        aria-label={label}
+        onClick={onChange}
+        style={{
+          width: '54px',
+          height: '30px',
+          borderRadius: '999px',
+          border: '1px solid rgba(255, 255, 255, 0.28)',
+          backgroundColor: checked ? '#AAE651' : 'rgba(255, 255, 255, 0.18)',
+          position: 'relative',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: '3px',
+            left: checked ? '27px' : '3px',
+            width: '22px',
+            height: '22px',
+            borderRadius: '50%',
+            backgroundColor: checked ? '#000' : '#fff',
+            transition: 'left 0.2s ease',
+          }}
+        />
+      </button>
+    </label>
+  );
+}
+
+function showCredentialOffer(offerLink: string, title: string, options: CredentialOfferOptions) {
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '20px',
+        justifyContent: 'space-between',
+        gap: '24px',
+        padding: '28px 24px 32px',
+        backgroundColor: '#284c63',
+        borderRadius: '16px',
+        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.18)',
+        minHeight: '100%',
+        boxSizing: 'border-box',
       }}
     >
-      <div>
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+        }}
+      >
         <p
           style={{
             fontSize: '1.25rem',
             fontWeight: 600,
-            marginBottom: '15px',
-            color: '#212529',
+            margin: 0,
+            color: '#fff',
             fontStyle: 'italic',
           }}
         >
           {title}
         </p>
-        <div style={{ maxWidth: '800px', wordBreak: 'break-all' }}>
-          <a href={offerLink} target="_blank" rel="noopener noreferrer">
-            {offerLink}
-          </a>
-        </div>
+        {options.showUrl ? (
+          <div
+            style={{
+              width: '100%',
+              minHeight: '148px',
+              padding: '0 8px',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+            }}
+          >
+            <a
+              href={offerLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: '#AAE651',
+                display: 'block',
+                wordBreak: 'break-word',
+                overflowWrap: 'anywhere',
+                lineHeight: 1.35,
+                textAlign: 'center',
+                textDecorationThickness: '1px',
+              }}
+            >
+              {offerLink}
+            </a>
+          </div>
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              minHeight: '148px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <p style={{ margin: 0, color: '#d7e4eb' }}>URL hidden</p>
+          </div>
+        )}
       </div>
       <div
         style={{
@@ -259,13 +407,17 @@ function showCredentialOffer(offerLink: string, title: string) {
           padding: '20px',
           borderRadius: '12px',
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          width: options.qrSize === 360 ? '400px' : '400px',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          margin: '0 auto',
         }}
       >
         <QRCode
           value={offerLink}
-          size={300}
+          size={options.qrSize}
           style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-          viewBox={`0 0 300 300`}
+          viewBox={`0 0 ${options.qrSize} ${options.qrSize}`}
         />
       </div>
     </div>
