@@ -7,6 +7,7 @@ This project is a React application that demonstrates how to integrate Keycloak 
 - **User Authentication:** Login and logout functionality using Keycloak SSO.
 - **Protected Routes:** A dashboard page that is only accessible to authenticated users.
 - **OID4VC Integration:** A service to interact with an OID4VC provider.
+- **Imported-user routing:** Users linked to the German PID import provider are sent to their Keycloak Account Console instead of receiving a credential offer.
 - **Modern Tech Stack:** Built with React, Vite, and Tailwind CSS.
 
 ## Getting Started
@@ -39,6 +40,11 @@ These instructions will get you a copy of the project up and running on your loc
    ```bash
    cp .env.example .env
    ```
+
+`VITE_GERMAN_PID_IMPORT_IDP_ALIAS` must match the hidden import-provider alias configured in Keycloak. It defaults to
+`oid4vp-import`. After authentication, the application queries Keycloak's authenticated Account API. A user with a
+connected link for that provider is redirected to `<keycloak-url>/realms/<realm>/account/` before the credential-offer
+dashboard mounts. Other authenticated users keep the existing credential-offer flow.
 
 ### Running the Application
 

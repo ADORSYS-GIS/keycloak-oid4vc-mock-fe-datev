@@ -1,5 +1,9 @@
 import { useEffect, useState, type ReactNode, useCallback, useRef } from 'react';
 import keycloak from '../config/keycloak.config';
+import {
+  isGermanPidImportedUser,
+  redirectToKeycloakAccount,
+} from '../services/keycloak-account.service';
 import { AuthContext, type UserProfile } from './AuthContext';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -27,6 +31,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const initKeycloak = useCallback(async () => {
+    let redirectingToAccount = false;
+
     try {
       console.log('Initializing Keycloak...');
       const authenticated = await keycloak.init({
@@ -42,6 +48,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(authenticated);
 
       if (authenticated) {
+        if (!keycloak.token) {
+          throw new Error('Authenticated Keycloak session has no access token');
+        }
+
+        try {
+          if (await isGermanPidImportedUser(keycloak.token)) {
+            redirectingToAccount = true;
+            console.log(
+              'German PID imported user detected; redirecting to Keycloak Account Console.'
+            );
+            redirectToKeycloakAccount();
+            return;
+          }
+        } catch (error) {
+          // Account-link detection is routing assistance, not an authentication boundary.
+          // Preserve the existing credential-offer experience if the Account API is unavailable.
+          console.error(
+            'Failed to determine whether the user was imported through German PID:',
+            error
+          );
+        }
+
         await loadUserProfile();
 
         setInterval(() => {
@@ -54,8 +82,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Failed to initialize Keycloak:', error);
     } finally {
-      setIsLoading(false);
-      console.log('Keycloak initialization finished.');
+      if (!redirectingToAccount) {
+        setIsLoading(false);
+        console.log('Keycloak initialization finished.');
+      }
     }
   }, [loadUserProfile, logout]);
 
