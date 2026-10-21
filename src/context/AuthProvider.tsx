@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Initializing Keycloak...');
       const authenticated = await keycloak.init({
         onLoad: 'check-sso',
+        flow: 'standard',
         pkceMethod: 'S256',
         checkLoginIframe: false,
         enableLogging: true,

@@ -21,7 +21,6 @@ export const DEFAULT_CREDENTIAL_CONFIGURATION_ID =
 
 const EndpointType = {
   KEYCLOAK_26_6_0: 'keycloak_26_6_0',
-  PRE_KEYCLOAK_26_6_0: 'pre_keycloak_26_6_0',
 } as const;
 
 type EndpointType = (typeof EndpointType)[keyof typeof EndpointType];
@@ -31,7 +30,6 @@ type QueryParams = Record<string, string | undefined>;
 class Oid4vcService {
   private static readonly ENDPOINTS = {
     CREATE_CREDENTIAL_OFFER: '/protocol/oid4vc/create-credential-offer',
-    CREDENTIAL_OFFER_URI: '/protocol/oid4vc/credential-offer-uri',
   };
 
   private getBaseUrl(): string {
@@ -54,49 +52,16 @@ class Oid4vcService {
     return keycloak.tokenParsed?.preferred_username || '';
   }
 
-  private getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-  }
-
   private buildQueryString(params: QueryParams): string {
     return new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
     ).toString();
   }
 
-  private async withFallback<T>(
-    primary: () => Promise<T>,
-    fallback: () => Promise<T>,
-    context: string
-  ): Promise<T> {
-    try {
-      return await primary();
-    } catch (primaryError) {
-      console.warn(`${context} primary failed, falling back`, primaryError);
-
-      try {
-        return await fallback();
-      } catch (fallbackError) {
-        console.error(`${context} both strategies failed`, {
-          primaryError: this.getErrorMessage(primaryError),
-          fallbackError: this.getErrorMessage(fallbackError),
-        });
-
-        throw new Error(
-          `${context} failed. Primary: ${this.getErrorMessage(primaryError)}, Fallback: ${this.getErrorMessage(fallbackError)}`
-        );
-      }
-    }
-  }
-
   async getCredentialOfferUri(
     credentialConfigurationId: string = DEFAULT_CREDENTIAL_CONFIGURATION_ID
   ): Promise<string> {
-    return this.withFallback(
-      () => this.getCredentialOfferUriKeycloak26_6_0(credentialConfigurationId),
-      () => this.getCredentialOfferUriPreKeycloak26_6_0(credentialConfigurationId),
-      'CredentialOfferUri'
-    );
+    return this.getCredentialOfferUriKeycloak26_6_0(credentialConfigurationId);
   }
 
   private async getCredentialOfferUriKeycloak26_6_0(
@@ -105,28 +70,13 @@ class Oid4vcService {
     const queryParams: QueryParams = {
       credential_configuration_id: credentialConfigurationId,
       target_user: this.getUsername(),
-      pre_authorized: 'true',
+      pre_authorized: 'false',
     };
 
     return this.fetchCredentialOfferUri(
       Oid4vcService.ENDPOINTS.CREATE_CREDENTIAL_OFFER,
       queryParams,
       EndpointType.KEYCLOAK_26_6_0
-    );
-  }
-
-  private async getCredentialOfferUriPreKeycloak26_6_0(
-    credentialConfigurationId: string
-  ): Promise<string> {
-    const queryParams: QueryParams = {
-      credential_configuration_id: credentialConfigurationId,
-      username: this.getUsername(),
-    };
-
-    return this.fetchCredentialOfferUri(
-      Oid4vcService.ENDPOINTS.CREDENTIAL_OFFER_URI,
-      queryParams,
-      EndpointType.PRE_KEYCLOAK_26_6_0
     );
   }
 
@@ -216,11 +166,7 @@ class Oid4vcService {
   async getCredentialOfferPng(
     credentialConfigurationId: string = DEFAULT_CREDENTIAL_CONFIGURATION_ID
   ): Promise<Blob> {
-    return this.withFallback(
-      () => this.getCredentialOfferPngKeycloak26_6_0(credentialConfigurationId),
-      () => this.getCredentialOfferPngPreKeycloak26_6_0(credentialConfigurationId),
-      'CredentialOfferPng'
-    );
+    return this.getCredentialOfferPngKeycloak26_6_0(credentialConfigurationId);
   }
 
   private async getCredentialOfferPngKeycloak26_6_0(
@@ -229,7 +175,7 @@ class Oid4vcService {
     const queryParams: QueryParams = {
       credential_configuration_id: credentialConfigurationId,
       target_user: this.getUsername(),
-      pre_authorized: 'true',
+      pre_authorized: 'false',
       type: 'qr-code',
     };
 
@@ -237,22 +183,6 @@ class Oid4vcService {
       Oid4vcService.ENDPOINTS.CREATE_CREDENTIAL_OFFER,
       queryParams,
       EndpointType.KEYCLOAK_26_6_0
-    );
-  }
-
-  private async getCredentialOfferPngPreKeycloak26_6_0(
-    credentialConfigurationId: string
-  ): Promise<Blob> {
-    const queryParams: QueryParams = {
-      credential_configuration_id: credentialConfigurationId,
-      username: this.getUsername(),
-      type: 'qr-code',
-    };
-
-    return this.fetchCredentialOfferPng(
-      Oid4vcService.ENDPOINTS.CREDENTIAL_OFFER_URI,
-      queryParams,
-      EndpointType.PRE_KEYCLOAK_26_6_0
     );
   }
 
