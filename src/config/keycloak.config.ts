@@ -6,6 +6,12 @@ const keycloakConfig = {
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
 };
 
+export const getKeycloakAccountConsoleUrl = () => {
+  const keycloakBaseUrl = import.meta.env.VITE_KEYCLOAK_URL.replace(/\/+$/, '');
+  const realm = encodeURIComponent(import.meta.env.VITE_KEYCLOAK_REALM);
+  return `${keycloakBaseUrl}/realms/${realm}/account/`;
+};
+
 const keycloak = new Keycloak(keycloakConfig);
 
 keycloak.onAuthSuccess = () => {

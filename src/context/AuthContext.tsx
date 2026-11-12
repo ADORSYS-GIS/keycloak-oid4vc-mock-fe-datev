@@ -8,11 +8,13 @@ export interface UserProfile {
   id?: string;
 }
 
+export type LoginFlow = 'credential-issuer' | 'keycloak-credential' | 'german-pid';
+
 export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   userProfile: UserProfile | null;
-  login: () => void;
+  login: (flow?: LoginFlow) => void;
   logout: () => void;
   getToken: () => string | undefined;
   hasRole: (role: string) => boolean;

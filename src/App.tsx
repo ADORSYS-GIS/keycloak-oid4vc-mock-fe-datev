@@ -1,12 +1,45 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import type { LoginFlow } from './context/AuthContext';
 import { AuthProvider } from './context/AuthProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import { getKeycloakAccountConsoleUrl } from './config/keycloak.config';
+
+const LOGIN_FLOW_STORAGE_KEY = 'datev-login-flow';
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [loginFlow] = useState<LoginFlow | null>(() => {
+    const savedFlow = window.sessionStorage.getItem(LOGIN_FLOW_STORAGE_KEY);
+    return savedFlow === 'credential-issuer' ||
+      savedFlow === 'keycloak-credential' ||
+      savedFlow === 'german-pid'
+      ? savedFlow
+      : null;
+  });
+
+  useEffect(() => {
+    if (isAuthenticated && loginFlow) {
+      window.sessionStorage.removeItem(LOGIN_FLOW_STORAGE_KEY);
+
+      if (loginFlow === 'german-pid') {
+        window.location.replace(getKeycloakAccountConsoleUrl());
+      }
+    }
+  }, [isAuthenticated, loginFlow]);
+
+  if (isAuthenticated && loginFlow === 'german-pid') {
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        <h2>Opening your Keycloak account...</h2>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -25,7 +58,7 @@ function AppRoutes() {
 
   return isAuthenticated ? (
     <ProtectedRoute>
-      <Dashboard />
+      <Dashboard flow={loginFlow ?? 'credential-issuer'} />
     </ProtectedRoute>
   ) : (
     <Login />

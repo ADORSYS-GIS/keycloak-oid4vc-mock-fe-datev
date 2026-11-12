@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode, useCallback, useRef } from 'react';
 import keycloak from '../config/keycloak.config';
-import { AuthContext, type UserProfile } from './AuthContext';
+import { AuthContext, type LoginFlow, type UserProfile } from './AuthContext';
+
+const LOGIN_FLOW_STORAGE_KEY = 'datev-login-flow';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const appBaseUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
@@ -67,12 +69,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initKeycloak();
   }, [initKeycloak]);
 
-  const login = useCallback(() => {
-    console.log('Login called, redirecting to Keycloak...');
-    keycloak.login({
-      redirectUri: appBaseUrl,
-    });
-  }, [appBaseUrl]);
+  const login = useCallback(
+    (flow: LoginFlow = 'credential-issuer') => {
+      console.log(`Starting ${flow} login through Keycloak...`);
+      window.sessionStorage.setItem(LOGIN_FLOW_STORAGE_KEY, flow);
+      keycloak.login({
+        redirectUri: appBaseUrl,
+      });
+    },
+    [appBaseUrl]
+  );
 
   const getToken = (): string | undefined => {
     return keycloak.token;

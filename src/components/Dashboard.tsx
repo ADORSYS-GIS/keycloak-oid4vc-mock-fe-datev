@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import oid4vcService from '../services/oid4vc.service';
 import QRCode from 'react-qr-code';
+import type { LoginFlow } from '../context/AuthContext';
 
-const Dashboard = () => {
+const Dashboard = ({ flow }: { flow: LoginFlow }) => {
   const { logout } = useAuth();
   const [offerDeeplink, setOfferDeeplink] = useState<string | null>(null);
   const [offerDeeplinkVal, setOfferDeeplinkVal] = useState<string | null>(null);
@@ -12,8 +13,12 @@ const Dashboard = () => {
   const [showByReferenceCard, setShowByReferenceCard] = useState(false);
 
   useEffect(() => {
-    prepareQr();
-  }, []);
+    if (flow === 'credential-issuer') {
+      prepareQr();
+    } else {
+      setIsLoading(false);
+    }
+  }, [flow]);
 
   const prepareQr = async () => {
     setIsLoading(true);
@@ -37,6 +42,56 @@ const Dashboard = () => {
       setIsLoading(false);
     }
   };
+
+  if (flow !== 'credential-issuer') {
+    const credentialDescription =
+      flow === 'keycloak-credential'
+        ? 'If you selected the Keycloak credential option, Keycloak verified that credential before returning here.'
+        : 'If you selected German PID, Keycloak verified the wallet credential and provisioned the account before returning here.';
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          padding: '32px 24px',
+          backgroundColor: '#1F3D52',
+          color: '#fff',
+          fontFamily: 'Arial, sans-serif',
+          boxSizing: 'border-box',
+          textAlign: 'center',
+        }}
+      >
+        <img
+          src={`${import.meta.env.BASE_URL}datev.png`}
+          alt="Datev logo"
+          style={{ width: '112px', height: '112px', objectFit: 'contain', marginBottom: '28px' }}
+        />
+        <h1 style={{ margin: '0 0 16px', fontSize: '2rem' }}>You are signed in</h1>
+        <p style={{ maxWidth: '560px', margin: '0 0 28px', color: '#d7e4eb', lineHeight: 1.6 }}>
+          Your Keycloak sign-in is complete. {credentialDescription}
+        </p>
+        <button
+          onClick={logout}
+          style={{
+            backgroundColor: '#AAE651',
+            color: '#000',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+          }}
+        >
+          Sign out
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
